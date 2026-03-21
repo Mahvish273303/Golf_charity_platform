@@ -12,19 +12,39 @@ const { protect } = require("./middleware/auth.middleware");
 
 const app = express();
 
-const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173,http://127.0.0.1:5173")
+const allowedOrigins = (
+  process.env.FRONTEND_URL ||
+  "http://localhost:5173,http://127.0.0.1:5173"
+)
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+
+  return allowedOrigins.some((pattern) => {
+    if (pattern === origin) return true;
+
+    if (!pattern.includes("*")) return false;
+
+    const escapedPattern = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+    const regexPattern = `^${escapedPattern.replace(/\*/g, ".*")}$`;
+    return new RegExp(regexPattern).test(origin);
+  });
+}
+
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"));
+      if (isOriginAllowed(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(null, false);
     },
     credentials: true,
+    optionsSuccessStatus: 204,
   })
 );
 app.use(express.json());
