@@ -1,11 +1,11 @@
 const express = require("express");
 const adminController = require("../controllers/admin.controller");
 const drawController = require("../controllers/draw.controller");
-const { protect, requireAdmin } = require("../middleware/auth.middleware");
+const { verifyToken, checkAdmin } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
-router.use(protect, requireAdmin);
+router.use(verifyToken, checkAdmin);
 
 router.get("/users", adminController.getAllUsers);
 router.patch("/users/:id", adminController.updateUser);

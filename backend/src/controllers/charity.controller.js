@@ -1,4 +1,32 @@
-const { prisma } = require("../config/db");
+const Charity = require("../models/Charity");
+const User = require("../models/User");
+const Subscription = require("../models/Subscription");
+
+function toCharity(charity) {
+  return {
+    id: String(charity._id),
+    name: charity.name,
+    description: charity.description,
+    image: charity.image,
+    contributionPercentage: charity.contributionPercentage,
+    createdAt: charity.createdAt,
+    updatedAt: charity.updatedAt,
+  };
+}
+
+function toUser(user) {
+  return {
+    id: String(user._id),
+    fullName: user.name,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    charityId: user.charityId ? String(user.charityId) : null,
+    contributionPercentage: user.contributionPercentage ?? 10,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
 
 async function createCharity(req, res) {
   try {
@@ -11,21 +39,17 @@ async function createCharity(req, res) {
     const parsedPercentage =
       contributionPercentage === undefined ? 10 : Number(contributionPercentage);
     if (Number.isNaN(parsedPercentage) || parsedPercentage < 0 || parsedPercentage > 100) {
-      return res
-        .status(400)
-        .json({ message: "contributionPercentage must be between 0 and 100." });
+      return res.status(400).json({ message: "contributionPercentage must be between 0 and 100." });
     }
 
-    const charity = await prisma.charity.create({
-      data: {
-        name: name.trim(),
-        description: typeof description === "string" ? description.trim() : null,
-        image: typeof image === "string" ? image.trim() : null,
-        contributionPercentage: Math.round(parsedPercentage),
-      },
+    const data = await Charity.create({
+      name: name.trim(),
+      description: typeof description === "string" ? description.trim() : "",
+      image: typeof image === "string" ? image.trim() : "",
+      contributionPercentage: Math.round(parsedPercentage),
     });
 
-    return res.status(201).json(charity);
+    return res.status(201).json(toCharity(data));
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("[CHARITY][CREATE] error:", error);
@@ -37,25 +61,19 @@ async function getAllCharities(req, res) {
   try {
     const { search, minPercentage, sort = "desc" } = req.query;
     const parsedMin = minPercentage !== undefined ? Number(minPercentage) : null;
-    const where = {};
-
+    const filter = {};
     if (search && typeof search === "string") {
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
       ];
     }
-
     if (parsedMin !== null && !Number.isNaN(parsedMin)) {
-      where.contributionPercentage = { gte: parsedMin };
+      filter.contributionPercentage = { $gte: parsedMin };
     }
 
-    const charities = await prisma.charity.findMany({
-      where,
-      orderBy: { createdAt: sort === "asc" ? "asc" : "desc" },
-    });
-
-    return res.status(200).json(charities);
+    const data = await Charity.find(filter).sort({ createdAt: sort === "asc" ? 1 : -1 }).lean();
+    return res.status(200).json(data.map(toCharity));
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("[CHARITY][LIST] error:", error);
@@ -67,18 +85,13 @@ async function selectCharity(req, res) {
   try {
     const { charityId, contributionPercentage } = req.body;
 
-    if (!charityId || typeof charityId !== "string") {
+    if (!charityId) {
       return res.status(400).json({ message: "charityId is required." });
     }
 
-    const charity = await prisma.charity.findUnique({
-      where: { id: charityId },
-      select: { id: true },
-    });
+    const charity = await Charity.findById(charityId).select("_id").lean();
 
-    if (!charity) {
-      return res.status(404).json({ message: "Invalid charityId." });
-    }
+    if (!charity) return res.status(404).json({ message: "Invalid charityId." });
 
     const parsedContribution =
       contributionPercentage === undefined ? null : Number(contributionPercentage);
@@ -86,31 +99,20 @@ async function selectCharity(req, res) {
       parsedContribution !== null &&
       (Number.isNaN(parsedContribution) || parsedContribution < 10 || parsedContribution > 100)
     ) {
-      return res
-        .status(400)
-        .json({ message: "contributionPercentage must be between 10 and 100." });
+      return res.status(400).json({ message: "contributionPercentage must be between 10 and 100." });
     }
 
-    const user = await prisma.user.update({
-      where: { id: req.user.userId },
-      data: {
-        charityId,
-        ...(parsedContribution !== null
-          ? { contributionPercentage: Math.round(parsedContribution) }
-          : {}),
-      },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        charityId: true,
-        contributionPercentage: true,
-      },
-    });
+    const updateData = {
+      charityId,
+      ...(parsedContribution !== null
+        ? { contributionPercentage: Math.round(parsedContribution) }
+        : {}),
+    };
+    const updated = await User.findByIdAndUpdate(req.user.userId, updateData, { new: true }).lean();
 
     return res.status(200).json({
       message: "Charity selected successfully.",
-      user,
+      user: toUser(updated),
     });
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -121,22 +123,19 @@ async function selectCharity(req, res) {
 
 async function getMyCharity(req, res) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
-      select: {
-        id: true,
-        contributionPercentage: true,
-        charity: true,
-      },
-    });
+    const user = await User.findById(req.user.userId).lean();
 
-    if (!user || !user.charity) {
+    if (!user || !user.charityId) {
       return res.status(404).json({ message: "No charity selected." });
     }
 
+    const charity = await Charity.findById(user.charityId).lean();
+
+    if (!charity) return res.status(404).json({ message: "No charity selected." });
+
     return res.status(200).json({
-      ...user.charity,
-      contributionPercentage: user.contributionPercentage ?? user.charity.contributionPercentage,
+      ...toCharity(charity),
+      contributionPercentage: user.contributionPercentage ?? charity.contributionPercentage,
     });
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -151,21 +150,19 @@ async function updateMyContribution(req, res) {
     const parsed = Number(contributionPercentage);
 
     if (Number.isNaN(parsed) || parsed < 10 || parsed > 100) {
-      return res
-        .status(400)
-        .json({ message: "contributionPercentage must be between 10 and 100." });
+      return res.status(400).json({ message: "contributionPercentage must be between 10 and 100." });
     }
 
-    const user = await prisma.user.update({
-      where: { id: req.user.userId },
-      data: { contributionPercentage: Math.round(parsed) },
-      select: {
-        id: true,
-        contributionPercentage: true,
-      },
-    });
+    const updated = await User.findByIdAndUpdate(
+      req.user.userId,
+      { contributionPercentage: Math.round(parsed) },
+      { new: true }
+    ).lean();
 
-    return res.status(200).json(user);
+    return res.status(200).json({
+      id: String(updated._id),
+      contributionPercentage: updated.contributionPercentage,
+    });
   } catch (error) {
     return res.status(500).json({ message: "Failed to update contribution percentage." });
   }
@@ -178,17 +175,17 @@ async function updateContributionPercentage(req, res) {
     const parsedPercentage = Number(contributionPercentage);
 
     if (Number.isNaN(parsedPercentage) || parsedPercentage < 0 || parsedPercentage > 100) {
-      return res
-        .status(400)
-        .json({ message: "contributionPercentage must be between 0 and 100." });
+      return res.status(400).json({ message: "contributionPercentage must be between 0 and 100." });
     }
 
-    const charity = await prisma.charity.update({
-      where: { id },
-      data: { contributionPercentage: Math.round(parsedPercentage) },
-    });
+    const data = await Charity.findByIdAndUpdate(
+      id,
+      { contributionPercentage: Math.round(parsedPercentage) },
+      { new: true }
+    ).lean();
+    if (!data) return res.status(404).json({ message: "Charity not found." });
 
-    return res.status(200).json(charity);
+    return res.status(200).json(toCharity(data));
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("[CHARITY][UPDATE_PERCENT] error:", error);
@@ -198,23 +195,27 @@ async function updateContributionPercentage(req, res) {
 
 async function getDonationTotals(_req, res) {
   try {
-    const grouped = await prisma.subscription.groupBy({
-      by: ["charityId"],
-      _sum: { contributionAmount: true },
-      where: { charityId: { not: null } },
-    });
+    const subs = await Subscription.find({ charityId: { $ne: null } })
+      .select("charityId contributionAmount")
+      .lean();
 
-    const charityIds = grouped.map((item) => item.charityId).filter(Boolean);
-    const charities = await prisma.charity.findMany({
-      where: { id: { in: charityIds } },
-      select: { id: true, name: true },
-    });
-    const charityMap = new Map(charities.map((charity) => [charity.id, charity.name]));
+    const grouped = {};
+    for (const item of subs || []) {
+      const key = String(item.charityId);
+      if (!grouped[key]) grouped[key] = 0;
+      grouped[key] += Number(item.contributionAmount || 0);
+    }
 
-    const totals = grouped.map((item) => ({
-      charityId: item.charityId,
-      charityName: charityMap.get(item.charityId) || "Unknown",
-      totalDonations: Number(item._sum.contributionAmount || 0),
+    const charityIds = Object.keys(grouped);
+    if (!charityIds.length) return res.status(200).json([]);
+
+    const charities = await Charity.find({ _id: { $in: charityIds } }).select("name").lean();
+    const charityMap = new Map((charities || []).map((c) => [String(c._id), c.name]));
+
+    const totals = charityIds.map((id) => ({
+      charityId: id,
+      charityName: charityMap.get(id) || "Unknown",
+      totalDonations: Number(grouped[id].toFixed(2)),
     }));
 
     return res.status(200).json(totals);

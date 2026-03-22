@@ -20,6 +20,7 @@ function SignupPage() {
   });
   const [charities, setCharities] = useState([]);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     dashboardService
@@ -41,7 +42,14 @@ function SignupPage() {
       });
       navigate("/dashboard");
     } catch (err) {
-      setError(err?.response?.data?.message || "Signup failed");
+      console.error("[SignupPage] error:", err);
+      const msg = err?.message || err?.response?.data?.message || "Signup failed";
+      // "check your email" means account was created but email confirmation is needed
+      if (msg.toLowerCase().includes("check your email") || msg.toLowerCase().includes("confirm")) {
+        setSuccess(msg);
+      } else {
+        setError(msg);
+      }
     }
   };
 
@@ -74,21 +82,42 @@ function SignupPage() {
               placeholder="Minimum 6 characters"
               required
             />
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-slate-700">Select Charity (optional)</span>
-              <select
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                value={form.charityId}
-                onChange={(e) => setForm((p) => ({ ...p, charityId: e.target.value }))}
-              >
-                <option value="">Choose later</option>
-                {charities.map((charity) => (
-                  <option key={charity.id} value={charity.id}>
-                    {charity.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-700">Choose Charity (optional)</p>
+              <div className="grid gap-2">
+                {charities.map((charity) => {
+                  const active = form.charityId === charity.id;
+                  return (
+                    <button
+                      key={charity.id}
+                      type="button"
+                      onClick={() =>
+                        setForm((p) => ({
+                          ...p,
+                          charityId: active ? "" : charity.id,
+                        }))
+                      }
+                      className={`rounded-xl border p-3 text-left transition ${
+                        active
+                          ? "border-indigo-500 bg-indigo-50 shadow-sm"
+                          : "border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm"
+                      }`}
+                    >
+                      <p className="font-semibold text-slate-800">{charity.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {charity.description || "Charity partner"}
+                      </p>
+                      <p className="mt-2 text-xs text-indigo-700">
+                        Default contribution: {charity.contributionPercentage ?? 10}%
+                      </p>
+                    </button>
+                  );
+                })}
+                {!charities.length ? (
+                  <p className="text-xs text-slate-500">No charities available right now.</p>
+                ) : null}
+              </div>
+            </div>
             <Input
               label="Contribution Percentage (min 10)"
               type="number"
@@ -100,6 +129,11 @@ function SignupPage() {
               }
             />
             {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+            {success ? (
+              <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {success}
+              </p>
+            ) : null}
             <Button type="submit" className="w-full" loading={loading}>
               Signup
             </Button>

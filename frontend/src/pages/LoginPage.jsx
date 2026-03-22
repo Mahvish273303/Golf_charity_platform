@@ -11,26 +11,21 @@ function LoginPage() {
   const navigate = useNavigate();
   const { login, loading } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
-  const [portal, setPortal] = useState("user");
   const [error, setError] = useState("");
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
     try {
-      const user = await login(form.email, form.password);
-      const isAdmin = user?.role === "ADMIN";
-      if (portal === "admin" && !isAdmin) {
-        setError("This account is not an admin account.");
-        return;
-      }
-      if (portal === "user" && isAdmin) {
+      const response = await login(form.email, form.password);
+      if (response?.role === "ADMIN") {
         navigate("/admin");
-        return;
+      } else {
+        navigate("/dashboard");
       }
-      navigate(isAdmin ? "/admin" : "/dashboard");
     } catch (err) {
-      setError(err?.response?.data?.message || "Login failed");
+      console.error("[LoginPage] error:", err);
+      setError(err?.message || err?.response?.data?.message || "Login failed");
     }
   };
 
@@ -39,26 +34,6 @@ function LoginPage() {
       <Navbar />
       <main className="mx-auto flex w-full max-w-md px-4 py-10">
         <Card title="Login" className="w-full">
-          <div className="mb-4 flex rounded-xl bg-slate-100 p-1">
-            <button
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                portal === "user" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-600"
-              }`}
-              onClick={() => setPortal("user")}
-              type="button"
-            >
-              User Login
-            </button>
-            <button
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                portal === "admin" ? "bg-white text-violet-700 shadow-sm" : "text-slate-600"
-              }`}
-              onClick={() => setPortal("admin")}
-              type="button"
-            >
-              Admin Login
-            </button>
-          </div>
           <form className="space-y-3" onSubmit={onSubmit}>
             <Input
               label="Email"

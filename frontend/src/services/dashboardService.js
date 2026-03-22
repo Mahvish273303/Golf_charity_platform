@@ -12,7 +12,9 @@ export const dashboardService = {
   listCharities: (params = {}) => api.get("/api/charity", { params }).then((r) => r.data),
   myCharity: () => api.get("/api/charity/me").then((r) => r.data),
   selectCharity: (charityId, contributionPercentage) =>
-    api.post("/api/charity/select", { charityId, contributionPercentage }).then((r) => r.data),
+    api
+      .patch("/api/users/select-charity", { charityId, contributionPercentage })
+      .then((r) => r.data),
   updateMyContribution: (contributionPercentage) =>
     api.patch("/api/charity/me/contribution", { contributionPercentage }).then((r) => r.data),
   subscribe: (plan) =>

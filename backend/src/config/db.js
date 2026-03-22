@@ -1,32 +1,15 @@
-const { PrismaClient } = require("@prisma/client");
+const mongoose = require("mongoose");
 
-const prisma = new PrismaClient();
-let isConnected = false;
-
-async function connectDB() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is not set.");
-  }
-
+const connectDB = async () => {
   try {
-    await prisma.$connect();
-    isConnected = true;
-  } catch (error) {
-    isConnected = false;
+    await mongoose.connect(process.env.MONGO_URI);
     // eslint-disable-next-line no-console
-    console.error("Database connection failed:", error.message);
-    throw error;
+    console.log("MongoDB connected");
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    process.exit(1);
   }
-}
-
-async function disconnectDB() {
-  if (!isConnected) return;
-  await prisma.$disconnect();
-  isConnected = false;
-}
-
-module.exports = {
-  prisma,
-  connectDB,
-  disconnectDB,
 };
+
+module.exports = connectDB;

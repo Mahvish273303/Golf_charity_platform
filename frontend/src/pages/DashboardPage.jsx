@@ -90,12 +90,13 @@ function DashboardPage() {
     }
   };
 
-  const updateCharity = async () => {
-    if (!selectedCharityId) return;
+  const updateCharity = async (charityId = selectedCharityId) => {
+    if (!charityId) return;
     setSaving(true);
     setError("");
     try {
-      await dashboardService.selectCharity(selectedCharityId, Number(contributionPercentage));
+      setSelectedCharityId(charityId);
+      await dashboardService.selectCharity(charityId, Number(contributionPercentage));
       await loadDashboard();
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to select charity");
@@ -203,6 +204,11 @@ function DashboardPage() {
           <Card title="Profile" className="bg-gradient-to-br from-white to-indigo-50/70">
             <p className="text-sm text-slate-600">Name: {user?.fullName || "-"}</p>
             <p className="text-sm text-slate-600">Email: {user?.email || "-"}</p>
+            <p className="text-sm text-slate-600">Role: {user?.role || "USER"}</p>
+            <p className="text-sm text-slate-600">Selected Charity: {myCharity?.name || "None selected"}</p>
+            <p className="text-sm text-slate-600">
+              Contribution %: {myCharity?.contributionPercentage ?? user?.contributionPercentage ?? 10}
+            </p>
             <p className="text-sm text-slate-600">
               Subscription: {subscription?.active ? "Active" : "Inactive"}
             </p>
@@ -225,8 +231,13 @@ function DashboardPage() {
                   <option value="monthly">monthly</option>
                   <option value="yearly">yearly</option>
                 </select>
-                <Button onClick={subscribe} loading={saving}>
-                  Subscribe
+                <Button
+                  onClick={subscribe}
+                  loading={saving}
+                  disabled={Boolean(subscription?.active)}
+                  className={subscription?.active ? "bg-emerald-600 hover:bg-emerald-600" : ""}
+                >
+                  {subscription?.active ? "Subscribed" : "Subscribe"}
                 </Button>
                 <Button variant="dark" onClick={cancel} loading={saving}>
                   Cancel
@@ -319,22 +330,43 @@ function DashboardPage() {
             <p className="mb-3 text-sm text-slate-600">
               Contribution Percentage: {myCharity?.contributionPercentage ?? 10}%
             </p>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <select
-                className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                value={selectedCharityId}
-                onChange={(e) => setSelectedCharityId(e.target.value)}
-              >
-                <option value="">Select charity</option>
-                {charities.map((charity) => (
-                  <option key={charity.id} value={charity.id}>
-                    {charity.name}
-                  </option>
-                ))}
-              </select>
-              <Button onClick={updateCharity} loading={saving}>
-                Save
-              </Button>
+            <div className="grid gap-3 md:grid-cols-2">
+              {charities.map((charity) => {
+                const active = selectedCharityId === charity.id;
+                return (
+                  <button
+                    key={charity.id}
+                    type="button"
+                    onClick={() => setSelectedCharityId(charity.id)}
+                    className={`rounded-xl border p-3 text-left transition ${
+                      active
+                        ? "border-indigo-500 bg-indigo-50 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-indigo-300"
+                    }`}
+                  >
+                    <p className="font-semibold text-slate-800">{charity.name}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {charity.description || "Charity partner"}
+                    </p>
+                    <p className="mt-2 text-xs font-medium text-indigo-700">
+                      {charity.contributionPercentage}% default contribution
+                    </p>
+                    <div className="mt-3">
+                      <Button
+                        className="px-2 py-1 text-xs"
+                        variant={active ? "soft" : "primary"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateCharity(charity.id);
+                        }}
+                        loading={saving && selectedCharityId === charity.id}
+                      >
+                        Choose
+                      </Button>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
               <Input

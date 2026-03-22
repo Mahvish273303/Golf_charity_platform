@@ -1,4 +1,15 @@
-const { prisma } = require("../config/db");
+const Score = require("../models/Score");
+
+function toScore(score) {
+  return {
+    id: String(score._id),
+    userId: String(score.userId),
+    value: score.value,
+    playedAt: score.playedAt,
+    createdAt: score.createdAt,
+    updatedAt: score.updatedAt,
+  };
+}
 
 async function addScore(req, res) {
   try {
@@ -9,31 +20,23 @@ async function addScore(req, res) {
       return res.status(400).json({ message: "Score value must be an integer between 1 and 45." });
     }
 
-    const createdScore = await prisma.score.create({
-      data: {
-        userId,
-        value,
-        ...(playedAt ? { playedAt: new Date(playedAt) } : {}),
-      },
+    const created = await Score.create({
+      userId,
+      value,
+      playedAt: playedAt ? new Date(playedAt) : new Date(),
     });
 
-    const userScores = await prisma.score.findMany({
-      where: { userId },
-      orderBy: { playedAt: "desc" },
-      select: { id: true },
-    });
-
-    if (userScores.length > 5) {
-      const idsToDelete = userScores.slice(5).map((score) => score.id);
-      await prisma.score.deleteMany({
-        where: {
-          id: { in: idsToDelete },
-          userId,
-        },
-      });
+    // Enforce last-5 logic: delete oldest scores beyond 5
+    const allScores = await Score.find({ userId })
+      .sort({ playedAt: -1 })
+      .select("_id")
+      .lean();
+    if (allScores.length > 5) {
+      const idsToDelete = allScores.slice(5).map((s) => s._id);
+      await Score.deleteMany({ _id: { $in: idsToDelete } });
     }
 
-    return res.status(201).json(createdScore);
+    return res.status(201).json(toScore(created));
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("[SCORE][ADD] error:", error);
@@ -43,13 +46,8 @@ async function addScore(req, res) {
 
 async function getScores(req, res) {
   try {
-    const userId = req.user.userId;
-    const scores = await prisma.score.findMany({
-      where: { userId },
-      orderBy: { playedAt: "desc" },
-    });
-
-    return res.status(200).json(scores);
+    const data = await Score.find({ userId: req.user.userId }).sort({ playedAt: -1 }).lean();
+    return res.status(200).json(data.map(toScore));
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("[SCORE][GET] error:", error);
@@ -67,31 +65,24 @@ async function updateScore(req, res) {
       return res.status(400).json({ message: "Score value must be an integer between 1 and 45." });
     }
 
-    const score = await prisma.score.findUnique({
-      where: { id },
-      select: { id: true, userId: true },
-    });
-
-    if (!score || score.userId !== userId) {
+    const existing = await Score.findById(id).lean();
+    if (!existing || String(existing.userId) !== String(userId)) {
       return res.status(404).json({ message: "Score not found." });
     }
 
-    const updated = await prisma.score.update({
-      where: { id },
-      data: {
+    const updated = await Score.findByIdAndUpdate(
+      id,
+      {
         value,
         ...(playedAt ? { playedAt: new Date(playedAt) } : {}),
       },
-    });
+      { new: true }
+    ).lean();
 
-    return res.status(200).json(updated);
+    return res.status(200).json(toScore(updated));
   } catch (error) {
     return res.status(500).json({ message: "Failed to update score." });
   }
 }
 
-module.exports = {
-  addScore,
-  getScores,
-  updateScore,
-};
+module.exports = { addScore, getScores, updateScore };

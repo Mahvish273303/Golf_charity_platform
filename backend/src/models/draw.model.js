@@ -1,3 +1,1 @@
-const { prisma } = require("../config/db");
-
-module.exports = prisma.draw;
+module.exports = require("./Draw");

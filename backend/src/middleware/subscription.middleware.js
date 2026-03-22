@@ -1,22 +1,20 @@
-const { prisma } = require("../config/db");
+const Subscription = require("../models/Subscription");
 
 async function requireActiveSubscription(req, res, next) {
   try {
-    const latestSubscription = await prisma.subscription.findFirst({
-      where: { userId: req.user.userId, isActive: true },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, endDate: true },
-    });
+    const sub = await Subscription.findOne({
+      userId: req.user.userId,
+      isActive: true,
+    })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    if (!latestSubscription) {
+    if (!sub) {
       return res.status(403).json({ message: "Active subscription required." });
     }
 
-    if (new Date(latestSubscription.endDate) <= new Date()) {
-      await prisma.subscription.update({
-        where: { id: latestSubscription.id },
-        data: { isActive: false },
-      });
+    if (new Date(sub.endDate) <= new Date()) {
+      await Subscription.updateOne({ _id: sub._id }, { isActive: false });
       return res.status(403).json({ message: "Subscription has expired." });
     }
 
@@ -26,6 +24,4 @@ async function requireActiveSubscription(req, res, next) {
   }
 }
 
-module.exports = {
-  requireActiveSubscription,
-};
+module.exports = { requireActiveSubscription };

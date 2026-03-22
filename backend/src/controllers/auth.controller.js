@@ -1,121 +1,117 @@
-const bcrypt = require("bcrypt");
-const UserModel = require("../models/user.model");
-const { signToken } = require("../utils/jwt.util");
-const { prisma } = require("../config/db");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const User = require("../models/User");
+const Charity = require("../models/Charity");
 
-async function register(req, res) {
+function buildToken(user) {
+  return jwt.sign(
+    {
+      sub: String(user._id),
+      email: user.email,
+      role: user.role,
+    },
+    process.env.JWT_SECRET || "secret",
+    { expiresIn: "7d" }
+  );
+}
+
+function toUser(user) {
+  return {
+    id: String(user._id),
+    fullName: user.name,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    charityId: user.charityId ? String(user.charityId) : null,
+    contributionPercentage: user.contributionPercentage ?? 10,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
+async function getMe(req, res) {
+  return res.status(200).json({ user: req.user });
+}
+
+async function signup(req, res) {
   try {
-    const { fullName, email, password, charityId, contributionPercentage } = req.body;
-    const trimmedFullName = typeof fullName === "string" ? fullName.trim() : "";
-    const normalizedEmail = typeof email === "string" ? email.toLowerCase().trim() : "";
-
-    if (!trimmedFullName || !normalizedEmail || !password) {
-      return res
-        .status(400)
-        .json({ message: "fullName, email and password are required." });
+    const { fullName, name, email, password, charityId, contributionPercentage } = req.body || {};
+    const resolvedName = (fullName || name || "").trim();
+    if (!resolvedName || !email || !password) {
+      return res.status(400).json({ message: "name, email and password are required." });
     }
 
-    if (typeof password !== "string" || password.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "Password must be at least 6 characters long." });
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const exists = await User.findOne({ email: normalizedEmail });
+    if (exists) {
+      return res.status(409).json({ message: "Email already in use." });
     }
 
-    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      return res.status(400).json({ message: "A valid email is required." });
-    }
-
-    const existingUser = await UserModel.findByEmail(normalizedEmail);
-
-    if (existingUser) {
-      return res.status(409).json({ message: "User already exists." });
-    }
-
-    let validatedCharityId = null;
-    if (charityId !== undefined && charityId !== null && charityId !== "") {
-      const charity = await prisma.charity.findUnique({
-        where: { id: String(charityId) },
-        select: { id: true },
-      });
-      if (!charity) {
-        return res.status(400).json({ message: "Invalid charityId." });
-      }
-      validatedCharityId = charity.id;
-    }
-
-    const parsedContribution =
-      contributionPercentage === undefined ? 10 : Number(contributionPercentage);
-    if (Number.isNaN(parsedContribution) || parsedContribution < 10 || parsedContribution > 100) {
-      return res
-        .status(400)
-        .json({ message: "contributionPercentage must be between 10 and 100." });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await UserModel.createUser({
-      fullName: trimmedFullName,
+    const passwordHash = await bcrypt.hash(String(password), 10);
+    const createData = {
+      name: resolvedName,
       email: normalizedEmail,
-      passwordHash,
+      password: passwordHash,
       role: "USER",
-      charityId: validatedCharityId,
-      contributionPercentage: Math.round(parsedContribution),
+      isActive: true,
+      contributionPercentage: 10,
+    };
+
+    if (charityId) {
+      const charity = await Charity.findById(charityId).lean();
+      if (!charity) {
+        return res.status(400).json({ message: "Invalid charity selected." });
+      }
+      createData.charityId = charity._id;
+    }
+
+    if (contributionPercentage !== undefined) {
+      const parsed = Number(contributionPercentage);
+      if (!Number.isNaN(parsed) && parsed >= 10 && parsed <= 100) {
+        createData.contributionPercentage = Math.round(parsed);
+      }
+    }
+
+    const user = await User.create({
+      ...createData,
     });
 
-    const token = signToken({ userId: user.id });
-    return res.status(201).json({ user, token });
+    const token = buildToken(user);
+    return res.status(201).json({ user: toUser(user), token });
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("[AUTH][REGISTER] error:", error);
-    return res.status(500).json({ message: "Registration failed." });
+    return res.status(500).json({ message: "Signup failed." });
   }
 }
 
 async function login(req, res) {
   try {
-    const { email, password } = req.body;
-
+    const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ message: "email and password are required." });
     }
 
-    if (typeof email !== "string" || typeof password !== "string") {
-      return res.status(400).json({ message: "email and password must be strings." });
+    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+    if (!user) return res.status(401).json({ message: "Invalid credentials." });
+    if (!user.isActive) {
+      return res.status(403).json({ message: "Account is deactivated." });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-    const user = await UserModel.findByEmail(normalizedEmail);
+    const isMatch = await bcrypt.compare(String(password), user.password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials." });
 
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials." });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid credentials." });
-    }
-
-    const token = signToken({ userId: user.id });
+    const token = buildToken(user);
     return res.status(200).json({
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-        charityId: user.charityId,
-        contributionPercentage: user.contributionPercentage,
-        createdAt: user.createdAt,
-      },
+      user: toUser(user),
+      role: user.role,
       token,
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("[AUTH][LOGIN] error:", error);
     return res.status(500).json({ message: "Login failed." });
   }
 }
 
-module.exports = {
-  register,
-  login,
-};
+async function manualLogin(req, res) {
+  return login(req, res);
+}
+
+module.exports = { getMe, signup, login, manualLogin };

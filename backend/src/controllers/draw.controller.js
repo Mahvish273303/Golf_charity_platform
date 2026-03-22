@@ -1,10 +1,45 @@
-const { prisma } = require("../config/db");
+const Draw = require("../models/Draw");
+const Result = require("../models/Result");
+const User = require("../models/User");
+const Score = require("../models/Score");
+const Subscription = require("../models/Subscription");
+
+function toDraw(draw) {
+  if (!draw) return null;
+  return {
+    id: String(draw._id),
+    numbers: draw.numbers || [],
+    monthKey: draw.monthKey,
+    isPublished: draw.isPublished,
+    totalPool: draw.totalPool || 0,
+    jackpotRollover: draw.jackpotRollover || 0,
+    createdById: draw.createdById ? String(draw.createdById) : null,
+    publishedAt: draw.publishedAt || null,
+    createdAt: draw.createdAt,
+    updatedAt: draw.updatedAt,
+  };
+}
+
+function toResult(result) {
+  return {
+    id: String(result._id),
+    drawId: String(result.drawId),
+    userId: String(result.userId),
+    charityId: result.charityId ? String(result.charityId) : null,
+    scoreId: result.scoreId ? String(result.scoreId) : null,
+    matchedCount: result.matchedCount,
+    matchTier: result.matchTier,
+    isWinner: result.isWinner,
+    prizeAmount: result.prizeAmount,
+    createdAt: result.createdAt,
+    updatedAt: result.updatedAt,
+  };
+}
 
 function generateRandomDrawNumbers(total = 5, min = 1, max = 45) {
   const set = new Set();
   while (set.size < total) {
-    const value = Math.floor(Math.random() * (max - min + 1)) + min;
-    set.add(value);
+    set.add(Math.floor(Math.random() * (max - min + 1)) + min);
   }
   return Array.from(set).sort((a, b) => a - b);
 }
@@ -30,26 +65,22 @@ async function generateDraw(req, res) {
   try {
     const userId = req.user.userId;
     const monthKey = monthKeyFromDate();
-    const numbers = generateRandomDrawNumbers();
+    const existing = await Draw.findOne({ monthKey }).select("_id").lean();
 
-    const existingForMonth = await prisma.draw.findUnique({
-      where: { monthKey },
-      select: { id: true },
-    });
-
-    if (existingForMonth) {
+    if (existing) {
       return res.status(409).json({ message: "Draw already generated for this month." });
     }
 
-    const draw = await prisma.draw.create({
-      data: {
-        numbers,
-        monthKey,
-        createdById: userId,
-      },
+    const draw = await Draw.create({
+      numbers: generateRandomDrawNumbers(),
+      monthKey,
+      isPublished: false,
+      totalPool: 0,
+      jackpotRollover: 0,
+      createdById: userId,
     });
 
-    return res.status(201).json(draw);
+    return res.status(201).json(toDraw(draw));
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("[DRAW][GENERATE] error:", error);
@@ -59,15 +90,9 @@ async function generateDraw(req, res) {
 
 async function getLatestDraw(_req, res) {
   try {
-    const latestDraw = await prisma.draw.findFirst({
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (!latestDraw) {
-      return res.status(404).json({ message: "No draw found." });
-    }
-
-    return res.status(200).json(latestDraw);
+    const data = await Draw.findOne().sort({ createdAt: -1 }).lean();
+    if (!data) return res.status(404).json({ message: "No draw found." });
+    return res.status(200).json(toDraw(data));
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("[DRAW][LATEST] error:", error);
@@ -77,63 +102,75 @@ async function getLatestDraw(_req, res) {
 
 async function publishDraw(_req, res) {
   try {
-    const draw = await prisma.draw.findFirst({
-      where: { isPublished: false },
-      orderBy: { createdAt: "desc" },
-    });
+    const draw = await Draw.findOne({ isPublished: false }).sort({ createdAt: -1 }).lean();
 
-    if (!draw) {
-      return res.status(404).json({ message: "No unpublished draw found." });
-    }
+    if (!draw) return res.status(404).json({ message: "No unpublished draw found." });
 
-    const previousDraw = await prisma.draw.findFirst({
-      where: { isPublished: true },
-      orderBy: { publishedAt: "desc" },
-      select: { jackpotRollover: true },
-    });
-    const previousRollover = Number(previousDraw?.jackpotRollover ?? 0);
+    // Get previous jackpot rollover
+    const prevDraw = await Draw.findOne({ isPublished: true })
+      .sort({ publishedAt: -1 })
+      .select("jackpotRollover")
+      .lean();
+    const previousRollover = Number(prevDraw?.jackpotRollover ?? 0);
 
-    const activeSubscriptions = await prisma.subscription.findMany({
-      where: { isActive: true, endDate: { gt: new Date() } },
-      select: { plan: true },
-    });
-    const subscriptionPool = activeSubscriptions.reduce(
+    // Calculate subscription pool from active subscriptions
+    const activeSubs = await Subscription.find({
+      isActive: true,
+      endDate: { $gt: new Date() },
+    })
+      .select("plan")
+      .lean();
+    const subscriptionPool = activeSubs.reduce(
       (sum, item) => sum + subscriptionAmount(item.plan),
       0
     );
 
     const drawNumbers = draw.numbers;
-    const users = await prisma.user.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        charityId: true,
-        scores: {
-          orderBy: { playedAt: "desc" },
-          take: 5,
-          select: { id: true, value: true },
-        },
-      },
-    });
 
-    const resultRows = users.map((user) => {
-      const matchedScores = user.scores.filter((s) => drawNumbers.includes(s.value));
+    // Get all active users
+    const activeUsers = await User.find({ isActive: true }).select("_id charityId").lean();
+
+    if (!activeUsers || !activeUsers.length) {
+      return res.status(400).json({ message: "No active users to process." });
+    }
+
+    // Fetch last 5 scores for all active users in one query
+    const userIds = activeUsers.map((u) => String(u._id));
+    const allScores = await Score.find({ userId: { $in: userIds } })
+      .select("_id userId value playedAt")
+      .sort({ playedAt: -1 })
+      .lean();
+
+    // Group scores by user (take top 5 per user)
+    const scoresByUser = {};
+    for (const score of allScores || []) {
+      const key = String(score.userId);
+      if (!scoresByUser[key]) scoresByUser[key] = [];
+      if (scoresByUser[key].length < 5) {
+        scoresByUser[key].push(score);
+      }
+    }
+
+    // Compute prize tiers
+    const resultRows = activeUsers.map((user) => {
+      const userIdKey = String(user._id);
+      const scores = scoresByUser[userIdKey] || [];
+      const matchedScores = scores.filter((s) => drawNumbers.includes(s.value));
       const matchedCount = matchedScores.length;
       const matchTier = tierFromMatches(matchedCount);
       return {
-        drawId: draw.id,
-        userId: user.id,
-        charityId: user.charityId,
-        scoreId: matchedScores[0]?.id,
+        userId: user._id,
+        charityId: user.charityId || null,
+        scoreId: matchedScores[0]?._id || null,
         matchedCount,
         matchTier,
         isWinner: matchedCount >= 3,
       };
     });
 
-    const jackpotWinners = resultRows.filter((row) => row.matchTier === "JACKPOT");
-    const tier2Winners = resultRows.filter((row) => row.matchTier === "TIER2");
-    const tier3Winners = resultRows.filter((row) => row.matchTier === "TIER3");
+    const jackpotWinners = resultRows.filter((r) => r.matchTier === "JACKPOT");
+    const tier2Winners = resultRows.filter((r) => r.matchTier === "TIER2");
+    const tier3Winners = resultRows.filter((r) => r.matchTier === "TIER3");
 
     const jackpotPool = subscriptionPool * 0.4 + previousRollover;
     const tier2Pool = subscriptionPool * 0.35;
@@ -149,34 +186,25 @@ async function publishDraw(_req, res) {
       ? Number((tier3Pool / tier3Winners.length).toFixed(2))
       : 0;
 
-    const rowsToCreate = resultRows.map((row) => {
+    const rowsToInsert = resultRows.map((row) => {
       let prizeAmount = 0;
       if (row.matchTier === "JACKPOT") prizeAmount = jackpotShare;
       if (row.matchTier === "TIER2") prizeAmount = tier2Share;
       if (row.matchTier === "TIER3") prizeAmount = tier3Share;
-      return {
-        ...row,
-        prizeAmount,
-      };
+      return { drawId: draw._id, ...row, prizeAmount };
     });
-
-    await prisma.$transaction([
-      prisma.result.deleteMany({ where: { drawId: draw.id } }),
-      prisma.result.createMany({ data: rowsToCreate }),
-      prisma.draw.update({
-        where: { id: draw.id },
-        data: {
-          isPublished: true,
-          publishedAt: new Date(),
-          totalPool: Number(subscriptionPool.toFixed(2)),
-          jackpotRollover: jackpotWinners.length ? 0 : Number(jackpotPool.toFixed(2)),
-        },
-      }),
-    ]);
+    await Result.deleteMany({ drawId: draw._id });
+    await Result.insertMany(rowsToInsert);
+    await Draw.findByIdAndUpdate(draw._id, {
+      isPublished: true,
+      publishedAt: new Date(),
+      totalPool: Number(subscriptionPool.toFixed(2)),
+      jackpotRollover: jackpotWinners.length ? 0 : Number(jackpotPool.toFixed(2)),
+    });
 
     return res.status(200).json({
       message: "Draw published successfully.",
-      drawId: draw.id,
+      drawId: String(draw._id),
       totalPool: Number(subscriptionPool.toFixed(2)),
       rollover: jackpotWinners.length ? 0 : Number(jackpotPool.toFixed(2)),
       winners: {
@@ -194,42 +222,42 @@ async function publishDraw(_req, res) {
 
 async function previewDraw(_req, res) {
   try {
-    const draw = await prisma.draw.findFirst({
-      where: { isPublished: false },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, numbers: true, monthKey: true, createdAt: true },
-    });
+    const draw = await Draw.findOne({ isPublished: false })
+      .sort({ createdAt: -1 })
+      .select("_id numbers monthKey createdAt isPublished totalPool jackpotRollover")
+      .lean();
 
-    if (!draw) {
-      return res.status(404).json({ message: "No unpublished draw found for preview." });
+    if (!draw) return res.status(404).json({ message: "No unpublished draw found for preview." });
+
+    const activeUsers = await User.find({ isActive: true }).select("_id").lean();
+    const userIds = activeUsers.map((u) => u._id);
+    const allScores = await Score.find({ userId: { $in: userIds } })
+      .select("userId value playedAt")
+      .sort({ playedAt: -1 })
+      .lean();
+
+    const scoresByUser = {};
+    for (const score of allScores || []) {
+      const key = String(score.userId);
+      if (!scoresByUser[key]) scoresByUser[key] = [];
+      if (scoresByUser[key].length < 5) {
+        scoresByUser[key].push(score);
+      }
     }
 
-    const users = await prisma.user.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        scores: {
-          orderBy: { playedAt: "desc" },
-          take: 5,
-          select: { value: true },
-        },
-      },
-    });
-
-    const preview = users.map((user) => {
-      const values = user.scores.map((score) => score.value);
+    const preview = activeUsers.map((user) => {
+      const key = String(user._id);
+      const scores = scoresByUser[key] || [];
+      const values = scores.map((s) => s.value);
       const matched = draw.numbers.filter((n) => values.includes(n));
       return {
-        userId: user.id,
+        userId: String(user._id),
         matchedCount: matched.length,
         matchTier: tierFromMatches(matched.length),
       };
     });
 
-    return res.status(200).json({
-      draw,
-      preview,
-    });
+    return res.status(200).json({ draw: toDraw(draw), preview });
   } catch (error) {
     return res.status(500).json({ message: "Failed to preview draw." });
   }
@@ -238,7 +266,7 @@ async function previewDraw(_req, res) {
 async function simulateMonthlyDraw(req, res) {
   try {
     const monthKey = monthKeyFromDate();
-    const existing = await prisma.draw.findUnique({ where: { monthKey } });
+    const existing = await Draw.findOne({ monthKey }).lean();
 
     if (existing?.isPublished) {
       return res.status(409).json({ message: "Monthly draw already simulated for this month." });
@@ -246,18 +274,19 @@ async function simulateMonthlyDraw(req, res) {
 
     let draw = existing;
     if (!draw) {
-      const numbers = generateRandomDrawNumbers();
-      draw = await prisma.draw.create({
-        data: {
-          numbers,
-          monthKey,
-          createdById: req.user.userId,
-        },
+      draw = await Draw.create({
+        numbers: generateRandomDrawNumbers(),
+        monthKey,
+        isPublished: false,
+        totalPool: 0,
+        jackpotRollover: 0,
+        createdById: req.user.userId,
       });
     }
+
     return res.status(200).json({
       message: "Monthly draw simulation is ready. Review preview and publish manually.",
-      draw,
+      draw: toDraw(draw),
     });
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -268,35 +297,21 @@ async function simulateMonthlyDraw(req, res) {
 
 async function getUserWinnings(req, res) {
   try {
-    const rows = await prisma.result.findMany({
-      where: { userId: req.user.userId },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        matchTier: true,
-        prizeAmount: true,
-        createdAt: true,
-        draw: {
-          select: {
-            id: true,
-            monthKey: true,
-            numbers: true,
-            isPublished: true,
-          },
-        },
-        verification: {
-          select: {
-            status: true,
-            paymentStatus: true,
-          },
-        },
-      },
-    });
+    const rows = await Result.find({ userId: req.user.userId }).sort({ createdAt: -1 }).lean();
+    const drawIds = [...new Set(rows.map((r) => String(r.drawId)))];
+    const draws = await Draw.find({ _id: { $in: drawIds } }).lean();
+    const drawMap = new Map(draws.map((d) => [String(d._id), toDraw(d)]));
+    const items = rows.map((row) => ({
+      ...toResult(row),
+      draw: drawMap.get(String(row.drawId)) || null,
+      verification: null,
+    }));
 
-    const totalWon = rows.reduce((sum, row) => sum + Number(row.prizeAmount || 0), 0);
+    const totalWon = items.reduce((sum, r) => sum + Number(r.prizeAmount || 0), 0);
+
     return res.status(200).json({
       totalWon: Number(totalWon.toFixed(2)),
-      items: rows,
+      items,
     });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch winnings overview." });
@@ -305,23 +320,19 @@ async function getUserWinnings(req, res) {
 
 async function getDrawResults(_req, res) {
   try {
-    const latestPublished = await prisma.draw.findFirst({
-      where: { isPublished: true },
-      orderBy: { publishedAt: "desc" },
-    });
+    const latestPublished = await Draw.findOne({ isPublished: true })
+      .sort({ publishedAt: -1 })
+      .lean();
 
-    if (!latestPublished) {
-      return res.status(404).json({ message: "No published draw found." });
-    }
+    if (!latestPublished) return res.status(404).json({ message: "No published draw found." });
 
-    const results = await prisma.result.findMany({
-      where: { drawId: latestPublished.id },
-      orderBy: [{ matchedCount: "desc" }, { prizeAmount: "desc" }],
-    });
+    const results = await Result.find({ drawId: latestPublished._id })
+      .sort({ matchedCount: -1 })
+      .lean();
 
     return res.status(200).json({
-      draw: latestPublished,
-      results,
+      draw: toDraw(latestPublished),
+      results: results.map(toResult),
     });
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -332,41 +343,24 @@ async function getDrawResults(_req, res) {
 
 async function getUserResult(req, res) {
   try {
-    const latestDraw = await prisma.draw.findFirst({
-      where: { isPublished: true },
-      orderBy: { publishedAt: "desc" },
-    });
+    const latestDraw = await Draw.findOne({ isPublished: true }).sort({ publishedAt: -1 }).lean();
 
-    if (!latestDraw) {
-      return res.status(404).json({ message: "No published draw found." });
-    }
+    if (!latestDraw) return res.status(404).json({ message: "No published draw found." });
 
-    const result = await prisma.result.findUnique({
-      where: {
-        drawId_userId: {
-          drawId: latestDraw.id,
-          userId: req.user.userId,
-        },
-      },
-      select: {
-        matchedCount: true,
-        matchTier: true,
-        prizeAmount: true,
-      },
-    });
+    const result = await Result.findOne({
+      drawId: latestDraw._id,
+      userId: req.user.userId,
+    }).lean();
+
+    const tier = result?.matchTier;
+    const matchType =
+      tier === "JACKPOT" ? "jackpot" : tier === "TIER2" ? "tier 2" : tier === "TIER3" ? "tier 3" : "no win";
 
     return res.status(200).json({
       matchedCount: result?.matchedCount ?? 0,
-      matchType:
-        result?.matchTier === "JACKPOT"
-          ? "jackpot"
-          : result?.matchTier === "TIER2"
-            ? "tier 2"
-            : result?.matchTier === "TIER3"
-              ? "tier 3"
-              : "no win",
+      matchType,
       prizeAmount: Number(result?.prizeAmount ?? 0),
-      draw: latestDraw,
+      draw: toDraw(latestDraw),
     });
   } catch (error) {
     // eslint-disable-next-line no-console

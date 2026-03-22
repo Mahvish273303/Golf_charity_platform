@@ -8,6 +8,7 @@ const subscriptionRoutes = require("./routes/subscription.routes");
 const adminRoutes = require("./routes/admin.routes");
 const winnerRoutes = require("./routes/winner.routes");
 const publicRoutes = require("./routes/public.routes");
+const userRoutes = require("./routes/user.routes");
 const { protect } = require("./middleware/auth.middleware");
 
 const app = express();
@@ -52,6 +53,7 @@ app.use(express.json());
 // Routes
 app.use("/api/public", publicRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/score", scoreRoutes);
 app.use("/api/draw", drawRoutes);
 app.use("/api/charity", charityRoutes);
