@@ -216,20 +216,35 @@ function AdminPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
-      <main className="mx-auto w-full max-w-6xl px-4 py-6">
+      <main className="mx-auto w-full max-w-6xl px-4 py-8">
         <SectionTitle title="Admin Dashboard" subtitle="Manage users, draws, charities, and reports." />
         {loading ? <Loader text="Loading admin dashboard..." /> : null}
         {error ? <p className="mb-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
         {success ? <p className="mb-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{success}</p> : null}
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card title="Reports">
+        <div className="mb-5 grid gap-4 sm:grid-cols-3">
+          <Card className="bg-indigo-600/90 text-white">
+            <p className="text-xs font-semibold tracking-wide text-indigo-100">Total Users</p>
+            <p className="mt-1 text-3xl font-bold">{reports?.totalUsers ?? 0}</p>
+          </Card>
+          <Card className="bg-violet-600/90 text-white">
+            <p className="text-xs font-semibold tracking-wide text-violet-100">Total Prize Pool</p>
+            <p className="mt-1 text-3xl font-bold">{reports?.totalPrizePool ?? 0}</p>
+          </Card>
+          <Card className="bg-emerald-600/90 text-white">
+            <p className="text-xs font-semibold tracking-wide text-emerald-100">Total Donations</p>
+            <p className="mt-1 text-3xl font-bold">{reports?.totalDonations ?? 0}</p>
+          </Card>
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Card title="Reports" className="bg-white/75">
             <p className="text-sm text-slate-600">Total Users: {reports?.totalUsers ?? 0}</p>
             <p className="text-sm text-slate-600">Total Prize Pool: {reports?.totalPrizePool ?? 0}</p>
             <p className="text-sm text-slate-600">Total Donations: {reports?.totalDonations ?? 0}</p>
           </Card>
 
-          <Card title="Draw Management">
+          <Card title="Draw Management" className="bg-white/75">
             <div className="flex flex-wrap gap-2">
               <Button onClick={runGenerate} loading={saving}>
                 Generate Draw
@@ -243,7 +258,7 @@ function AdminPage() {
             </div>
           </Card>
 
-          <Card title="Draw Preview">
+          <Card title="Draw Preview" className="bg-white/75">
             {!drawPreview?.draw ? (
               <p className="text-sm text-slate-500">No unpublished draw preview available.</p>
             ) : (
@@ -257,7 +272,7 @@ function AdminPage() {
             )}
           </Card>
 
-          <Card title="Charity Management">
+          <Card title="Charity Management" className="bg-white/75">
             <form className="space-y-2" onSubmit={createCharity}>
               <Input
                 label="Name"
@@ -281,13 +296,13 @@ function AdminPage() {
             </form>
           </Card>
 
-          <Card title="Latest Draw Results">
+          <Card title="Latest Draw Results" className="bg-white/75">
             {!drawResults?.results?.length ? (
               <p className="text-sm text-slate-500">No results yet.</p>
             ) : (
               <ul className="space-y-2">
                 {drawResults.results.slice(0, 8).map((result) => (
-                  <li key={result.id} className="rounded-lg bg-slate-50 p-2 text-xs text-slate-700">
+                  <li key={result.id} className="rounded-xl bg-slate-50/90 p-2 text-xs text-slate-700 shadow-sm">
                     User: {result.userId} | Tier: {result.matchTier} | Prize: {result.prizeAmount}
                   </li>
                 ))}
@@ -296,12 +311,12 @@ function AdminPage() {
           </Card>
         </div>
 
-        <Card title="Charity Listing Management" className="mt-4">
+        <Card title="Charity Listing Management" className="mt-5 bg-white/75">
           <div className="grid gap-2">
             {charities.map((charity) => (
               <div
                 key={charity.id}
-                className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/90 p-3 transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
                   <p className="text-sm font-semibold text-slate-800">{charity.name}</p>
@@ -314,9 +329,9 @@ function AdminPage() {
                     max={100}
                     defaultValue={charity.contributionPercentage ?? 10}
                     onBlur={(e) => saveCharityPercent(charity.id, e.target.value)}
-                    className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-sm"
+                    className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                   />
-                  <Button className="bg-rose-600 hover:bg-rose-500" onClick={() => removeCharity(charity.id)}>
+                  <Button variant="danger" onClick={() => removeCharity(charity.id)}>
                     Delete
                   </Button>
                 </div>
@@ -325,7 +340,7 @@ function AdminPage() {
           </div>
         </Card>
 
-        <Card title="Winner Verification Controls" className="mt-4">
+        <Card title="Winner Verification Controls" className="mt-5 bg-white/75">
           <p className="mb-2 text-sm text-slate-600">
             Use winner verification ID from backend logs/admin responses to approve, reject, or mark paid.
           </p>
@@ -350,7 +365,7 @@ function AdminPage() {
           </div>
         </Card>
 
-        <Card title="Pending Winner Verifications" className="mt-4">
+        <Card title="Pending Winner Verifications" className="mt-5 bg-white/75">
           {!verifications.length ? (
             <p className="text-sm text-slate-500">No pending verification requests.</p>
           ) : (
@@ -358,7 +373,7 @@ function AdminPage() {
               {verifications.map((item) => (
                 <div
                   key={item.id}
-                  className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/90 p-3 transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="text-xs text-slate-700">
                     <p className="font-semibold">{item.user?.fullName || item.userId}</p>
@@ -393,12 +408,12 @@ function AdminPage() {
           )}
         </Card>
 
-        <Card title="Subscription Management" className="mt-4">
+        <Card title="Subscription Management" className="mt-5 bg-white/75">
           <div className="space-y-2">
             {subscriptions.slice(0, 12).map((sub) => (
               <div
                 key={sub.id}
-                className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/90 p-3 transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="text-xs text-slate-700">
                   <p className="font-semibold">{sub.user?.fullName || sub.userId}</p>
@@ -421,7 +436,7 @@ function AdminPage() {
           </div>
         </Card>
 
-        <Card title="Users" className="mt-4">
+        <Card title="Users" className="mt-5 bg-white/75">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead>
@@ -434,8 +449,13 @@ function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-slate-100">
+                {users.map((user, idx) => (
+                  <tr
+                    key={user.id}
+                    className={`border-b border-slate-100 transition hover:bg-indigo-50/40 ${
+                      idx % 2 === 0 ? "bg-white/70" : "bg-slate-50/50"
+                    }`}
+                  >
                     <td className="py-2 pr-3">{user.fullName}</td>
                     <td className="py-2 pr-3">{user.email}</td>
                     <td className="py-2 pr-3">

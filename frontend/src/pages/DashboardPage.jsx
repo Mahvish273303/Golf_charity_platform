@@ -188,10 +188,10 @@ function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
-      <main className="mx-auto w-full max-w-6xl px-4 py-6">
-        <section className="mb-5 rounded-3xl bg-gradient-to-r from-indigo-600 via-violet-600 to-sky-500 p-5 text-white md:p-7">
+      <main className="mx-auto w-full max-w-6xl px-4 py-8">
+        <section className="mb-7 rounded-[2rem] border border-white/60 bg-gradient-to-r from-indigo-600 via-violet-600 to-sky-500 p-6 text-white shadow-xl shadow-indigo-200/50 md:p-8">
           <p className="text-sm text-indigo-100">Welcome back</p>
-          <h1 className="mt-1 text-2xl font-bold md:text-3xl">{user?.fullName || "Player Dashboard"}</h1>
+          <h1 className="mt-1 text-3xl font-bold tracking-wide md:text-4xl">{user?.fullName || "Player Dashboard"}</h1>
           <p className="mt-2 text-sm text-indigo-100">
             Track scores, manage subscription, and monitor draw performance from one place.
           </p>
@@ -200,8 +200,17 @@ function DashboardPage() {
         {error ? <p className="mb-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
         {loading ? <Loader text="Loading your dashboard..." /> : null}
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card title="Profile" className="bg-gradient-to-br from-white to-indigo-50/70">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <Card title="Profile" className="bg-white/75 xl:col-span-1">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-sky-500 text-lg font-bold text-white shadow-md">
+                {(user?.fullName || "U").charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{user?.fullName || "User"}</p>
+                <p className="text-xs text-slate-500">{user?.email || "-"}</p>
+              </div>
+            </div>
             <p className="text-sm text-slate-600">Name: {user?.fullName || "-"}</p>
             <p className="text-sm text-slate-600">Email: {user?.email || "-"}</p>
             <p className="text-sm text-slate-600">Role: {user?.role || "USER"}</p>
@@ -214,7 +223,7 @@ function DashboardPage() {
             </p>
           </Card>
 
-          <Card title="Subscription" className="bg-gradient-to-br from-white to-sky-50/70">
+          <Card title="Subscription" className="bg-white/75 xl:col-span-1">
             <div className="space-y-3">
               <p className="text-sm text-slate-600">
                 Status: <span className="font-semibold">{subscription?.active ? "Active" : "Inactive"}</span>
@@ -246,7 +255,7 @@ function DashboardPage() {
             </div>
           </Card>
 
-          <Card title="Participation Summary" className="bg-gradient-to-br from-white to-violet-50/70">
+          <Card title="Participation Summary" className="bg-white/75 xl:col-span-1">
             <p className="text-sm text-slate-600">
               Draws Entered: {subscription?.active && latestDraw ? 1 : 0}
             </p>
@@ -258,7 +267,7 @@ function DashboardPage() {
             </p>
           </Card>
 
-          <Card title="Scores" className="bg-gradient-to-br from-white to-cyan-50/60">
+          <Card title="Scores" className="bg-white/75 xl:col-span-2">
             <form className="space-y-3" onSubmit={addScore}>
               <Input
                 label="Add score (1-45)"
@@ -281,12 +290,12 @@ function DashboardPage() {
             </form>
             <ul className="mt-4 space-y-2">
               {scores.slice(0, 5).map((score) => (
-                <li key={score.id} className="rounded-lg bg-white/80 px-3 py-2 text-sm text-slate-700 shadow-sm">
+                <li key={score.id} className="rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:shadow-md">
                   {editingScoreId === score.id ? (
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <input
-                          className="w-20 rounded-lg border border-slate-200 px-2 py-1"
+                          className="w-20 rounded-lg border border-slate-200 px-2 py-1 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                           type="number"
                           min={1}
                           max={45}
@@ -294,7 +303,7 @@ function DashboardPage() {
                           onChange={(e) => setEditingScoreValue(e.target.value)}
                         />
                         <input
-                          className="rounded-lg border border-slate-200 px-2 py-1"
+                          className="rounded-lg border border-slate-200 px-2 py-1 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                           type="date"
                           value={editingScoreDate}
                           onChange={(e) => setEditingScoreDate(e.target.value)}
@@ -325,7 +334,7 @@ function DashboardPage() {
             </ul>
           </Card>
 
-          <Card title="Charity" className="bg-gradient-to-br from-white to-emerald-50/70">
+          <Card title="Charity" className="bg-white/75 xl:col-span-2">
             <p className="mb-3 text-sm text-slate-600">Selected: {myCharity?.name || "None selected"}</p>
             <p className="mb-3 text-sm text-slate-600">
               Contribution Percentage: {myCharity?.contributionPercentage ?? 10}%
@@ -338,10 +347,10 @@ function DashboardPage() {
                     key={charity.id}
                     type="button"
                     onClick={() => setSelectedCharityId(charity.id)}
-                    className={`rounded-xl border p-3 text-left transition ${
+                    className={`rounded-2xl border p-4 text-left transition-all duration-300 ${
                       active
-                        ? "border-indigo-500 bg-indigo-50 shadow-sm"
-                        : "border-slate-200 bg-white hover:border-indigo-300"
+                        ? "border-indigo-500 bg-indigo-50 shadow-md"
+                        : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
                     }`}
                   >
                     <p className="font-semibold text-slate-800">{charity.name}</p>
@@ -383,19 +392,19 @@ function DashboardPage() {
             </div>
           </Card>
 
-          <Card title="Latest Draw" className="bg-gradient-to-br from-white to-amber-50/70">
+          <Card title="Latest Draw" className="bg-white/75">
             <p className="text-sm text-slate-600">
               Numbers: {Array.isArray(latestDraw?.numbers) ? latestDraw.numbers.join(", ") : "No draw yet"}
             </p>
           </Card>
 
-          <Card title="Your Result" className="bg-gradient-to-br from-white to-fuchsia-50/70">
+          <Card title="Your Result" className="bg-white/75">
             <p className="text-sm text-slate-600">Match Type: {drawResult?.matchType || "N/A"}</p>
             <p className="text-sm text-slate-600">Matched Count: {drawResult?.matchedCount ?? 0}</p>
             <p className="text-sm text-slate-600">Prize: {drawResult?.prizeAmount ?? 0}</p>
           </Card>
 
-          <Card title="Winner Verification" className="bg-gradient-to-br from-white to-rose-50/70">
+          <Card title="Winner Verification" className="bg-white/75">
             <p className="mb-2 text-sm text-slate-600">
               If you are a winner, upload proof for verification and payout processing.
             </p>
@@ -412,19 +421,19 @@ function DashboardPage() {
             </div>
           </Card>
 
-          <Card title="Independent Donation" className="bg-gradient-to-br from-white to-indigo-50/70">
+          <Card title="Independent Donation" className="bg-white/75">
             <p className="text-sm text-slate-600">
               Independent donation mode is prepared in UI and can be connected to a payment flow.
             </p>
           </Card>
 
-          <Card title="Winnings Overview" className="bg-gradient-to-br from-white to-teal-50/70 md:col-span-2">
+          <Card title="Winnings Overview" className="bg-white/75 md:col-span-2 xl:col-span-3">
             <p className="mb-2 text-sm text-slate-700">Total Won: {winnings?.totalWon ?? 0}</p>
             <div className="space-y-2">
               {(winnings?.items || []).slice(0, 8).map((item) => (
                 <div
                   key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/80 px-3 py-2 text-sm text-slate-700"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:shadow-md"
                 >
                   <span>
                     {item.draw?.monthKey || "N/A"} - {item.matchTier}

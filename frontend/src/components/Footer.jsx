@@ -1,9 +1,9 @@
 function Footer() {
   return (
-    <footer className="mt-10 border-t border-indigo-100 bg-white/80">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+    <footer className="mt-14 border-t border-white/60 bg-white/70 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-semibold text-slate-800">Golf Charity Platform</p>
+          <p className="font-semibold tracking-wide text-slate-800">Golf Charity Platform</p>
           <p>Play with purpose. Support real causes.</p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
