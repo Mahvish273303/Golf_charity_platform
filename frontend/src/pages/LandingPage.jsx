@@ -25,7 +25,7 @@ function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50">
       <Navbar />
       <main className="mx-auto w-full max-w-6xl px-4 py-10">
         <section className="relative overflow-hidden rounded-[2rem] border border-white/50 bg-slate-900 p-6 text-white shadow-xl shadow-slate-300/40 md:p-10">
@@ -88,18 +88,18 @@ function LandingPage() {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-4 sm:grid-cols-3">
-          <Card className="bg-white/75">
+        <section className="mt-10 grid gap-4 sm:grid-cols-3">
+          <Card className="bg-gradient-to-br from-purple-100/40 to-white/70">
             <p className="text-2xl">🏌️</p>
             <p className="mt-2 text-sm font-semibold text-slate-800">Active Subscribers</p>
             <p className="text-2xl font-bold text-indigo-700">{overview?.stats?.activeSubscriptions ?? 0}</p>
           </Card>
-          <Card className="bg-white/75">
+          <Card className="bg-gradient-to-br from-emerald-100/40 to-white/70">
             <p className="text-2xl">💚</p>
             <p className="mt-2 text-sm font-semibold text-slate-800">Donation Impact</p>
             <p className="text-2xl font-bold text-emerald-700">{overview?.stats?.totalDonations ?? 0}</p>
           </Card>
-          <Card className="bg-white/75">
+          <Card className="bg-gradient-to-br from-orange-100/40 to-white/70">
             <p className="text-2xl">🎯</p>
             <p className="mt-2 text-sm font-semibold text-slate-800">Latest Draw</p>
             <p className="text-sm font-bold text-violet-700">
@@ -108,22 +108,46 @@ function LandingPage() {
           </Card>
         </section>
 
-        <section className="mt-12">
+        <section className="mt-12 rounded-3xl bg-purple-50/30 px-3 py-16">
           <h2 className="text-2xl font-bold tracking-wide text-slate-900 md:text-3xl">How It Works</h2>
           <p className="mt-2 text-sm text-slate-500">Three simple steps to play, contribute, and win.</p>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <Card title="1. Join" className="bg-white/80">
-              <p className="mb-3 text-2xl">✨</p>
+            <Card className="bg-gradient-to-br from-indigo-100/30 to-white/70">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-xl">
+                  ✨
+                </span>
+                <span className="rounded-full bg-gradient-to-r from-indigo-600 to-sky-500 px-3 py-1 text-xs font-semibold text-white">
+                  Step 1
+                </span>
+              </div>
+              <h3 className="text-lg font-semibold tracking-wide text-slate-900">Join</h3>
               <p className="text-sm text-slate-600">Create your account and optionally choose a charity.</p>
             </Card>
-            <Card title="2. Play" className="bg-white/80">
-              <p className="mb-3 text-2xl">📈</p>
+            <Card className="bg-gradient-to-br from-sky-100/30 to-white/70">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-xl">
+                  📈
+                </span>
+                <span className="rounded-full bg-gradient-to-r from-violet-600 to-indigo-500 px-3 py-1 text-xs font-semibold text-white">
+                  Step 2
+                </span>
+              </div>
+              <h3 className="text-lg font-semibold tracking-wide text-slate-900">Play</h3>
               <p className="text-sm text-slate-600">
                 Enter Stableford scores. The system auto-maintains your latest five.
               </p>
             </Card>
-            <Card title="3. Win" className="bg-white/80">
-              <p className="mb-3 text-2xl">🏆</p>
+            <Card className="bg-gradient-to-br from-violet-100/30 to-white/70">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 text-xl">
+                  🏆
+                </span>
+                <span className="rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 px-3 py-1 text-xs font-semibold text-white">
+                  Step 3
+                </span>
+              </div>
+              <h3 className="text-lg font-semibold tracking-wide text-slate-900">Win</h3>
               <p className="text-sm text-slate-600">
                 Monthly draw tiers reward 3, 4, and 5 matches with jackpot rollover support.
               </p>
@@ -131,7 +155,7 @@ function LandingPage() {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-4 md:grid-cols-2">
+        <section className="mt-8 grid gap-4 rounded-3xl bg-white/50 px-3 py-16 md:grid-cols-2">
           <Card title="How It Works">
             <p className="text-sm text-slate-600">
               Subscribe monthly or yearly, enter your latest scores, and track draw results in your
@@ -146,8 +170,13 @@ function LandingPage() {
           </Card>
         </section>
 
-        <section className="mt-10">
-          <h2 className="mb-3 text-xl font-bold tracking-wide text-slate-900">Live Charity Highlights</h2>
+        <section className="mt-8 rounded-3xl bg-purple-50/20 px-3 py-16">
+          <h2 className="mb-2 text-3xl font-bold tracking-wide text-slate-900 md:text-4xl">
+            Live Charity Highlights
+          </h2>
+          <p className="mb-4 text-sm text-slate-600">
+            Choose a cause with transparent contribution percentages and real impact.
+          </p>
           {loading ? (
             <p className="text-sm text-slate-500">Loading live platform data...</p>
           ) : (
@@ -176,7 +205,11 @@ function LandingPage() {
                   ])
                 .slice(0, 3)
                 .map((charity) => (
-                  <Card key={charity.id} title={charity.name} className="bg-white/80">
+                  <Card
+                    key={charity.id}
+                    title={charity.name}
+                    className="group relative overflow-hidden bg-gradient-to-br from-indigo-100/20 via-white/70 to-violet-100/20 ring-1 ring-transparent hover:scale-[1.01] hover:ring-indigo-300/70"
+                  >
                     <p className="line-clamp-3 text-sm text-slate-600">
                       {charity.description || "No description available."}
                     </p>
@@ -185,7 +218,7 @@ function LandingPage() {
                     </p>
                     <div className="mt-3">
                       <Link
-                        className="text-xs font-semibold text-indigo-600 transition hover:text-indigo-500"
+                        className="text-xs font-semibold text-indigo-600 transition group-hover:text-indigo-500"
                         to="/charities"
                       >
                         View all charities

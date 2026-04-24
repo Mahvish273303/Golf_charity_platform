@@ -214,51 +214,51 @@ function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/30">
       <Navbar />
-      <main className="mx-auto w-full max-w-6xl px-4 py-8">
+      <main className="mx-auto w-full max-w-6xl px-4 py-10">
         <SectionTitle title="Admin Dashboard" subtitle="Manage users, draws, charities, and reports." />
         {loading ? <Loader text="Loading admin dashboard..." /> : null}
         {error ? <p className="mb-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
         {success ? <p className="mb-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{success}</p> : null}
 
-        <div className="mb-5 grid gap-4 sm:grid-cols-3">
-          <Card className="bg-indigo-600/90 text-white">
-            <p className="text-xs font-semibold tracking-wide text-indigo-100">Total Users</p>
-            <p className="mt-1 text-3xl font-bold">{reports?.totalUsers ?? 0}</p>
+        <div className="mb-6 grid gap-6 rounded-3xl bg-purple-50/20 p-4 sm:grid-cols-3">
+          <Card className="bg-gradient-to-br from-white to-blue-50/40">
+            <p className="text-xs font-semibold tracking-wide text-slate-600">Total Users</p>
+            <p className="mt-1 text-3xl font-bold text-slate-900">{reports?.totalUsers ?? 0}</p>
           </Card>
-          <Card className="bg-violet-600/90 text-white">
-            <p className="text-xs font-semibold tracking-wide text-violet-100">Total Prize Pool</p>
-            <p className="mt-1 text-3xl font-bold">{reports?.totalPrizePool ?? 0}</p>
+          <Card className="bg-gradient-to-br from-white to-purple-50/40">
+            <p className="text-xs font-semibold tracking-wide text-slate-600">Total Prize Pool</p>
+            <p className="mt-1 text-3xl font-bold text-slate-900">{reports?.totalPrizePool ?? 0}</p>
           </Card>
-          <Card className="bg-emerald-600/90 text-white">
-            <p className="text-xs font-semibold tracking-wide text-emerald-100">Total Donations</p>
-            <p className="mt-1 text-3xl font-bold">{reports?.totalDonations ?? 0}</p>
+          <Card className="bg-gradient-to-br from-white to-emerald-50/40">
+            <p className="text-xs font-semibold tracking-wide text-slate-600">Total Donations</p>
+            <p className="mt-1 text-3xl font-bold text-slate-900">{reports?.totalDonations ?? 0}</p>
           </Card>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Card title="Reports" className="bg-white/75">
+        <div className="grid gap-6 rounded-3xl bg-white/50 p-4 lg:grid-cols-2">
+          <Card title="Reports" className="bg-gradient-to-br from-white to-purple-50/40">
             <p className="text-sm text-slate-600">Total Users: {reports?.totalUsers ?? 0}</p>
             <p className="text-sm text-slate-600">Total Prize Pool: {reports?.totalPrizePool ?? 0}</p>
             <p className="text-sm text-slate-600">Total Donations: {reports?.totalDonations ?? 0}</p>
           </Card>
 
-          <Card title="Draw Management" className="bg-white/75">
+          <Card title="Draw Management" className="bg-gradient-to-br from-white to-blue-50/40">
             <div className="flex flex-wrap gap-2">
               <Button onClick={runGenerate} loading={saving}>
                 Generate Draw
               </Button>
-              <Button className="bg-violet-600 hover:bg-violet-500" onClick={runSimulate} loading={saving}>
+              <Button variant="soft" onClick={runSimulate} loading={saving}>
                 Simulate Monthly
               </Button>
-              <Button className="bg-sky-600 hover:bg-sky-500" onClick={runPublish} loading={saving}>
+              <Button variant="light" onClick={runPublish} loading={saving}>
                 Publish Draw
               </Button>
             </div>
           </Card>
 
-          <Card title="Draw Preview" className="bg-white/75">
+          <Card title="Draw Preview" className="bg-white/70">
             {!drawPreview?.draw ? (
               <p className="text-sm text-slate-500">No unpublished draw preview available.</p>
             ) : (
@@ -272,7 +272,7 @@ function AdminPage() {
             )}
           </Card>
 
-          <Card title="Charity Management" className="bg-white/75">
+          <Card title="Charity Management" className="bg-white/70">
             <form className="space-y-2" onSubmit={createCharity}>
               <Input
                 label="Name"
@@ -296,13 +296,13 @@ function AdminPage() {
             </form>
           </Card>
 
-          <Card title="Latest Draw Results" className="bg-white/75">
+          <Card title="Latest Draw Results" className="bg-white/70">
             {!drawResults?.results?.length ? (
               <p className="text-sm text-slate-500">No results yet.</p>
             ) : (
               <ul className="space-y-2">
                 {drawResults.results.slice(0, 8).map((result) => (
-                  <li key={result.id} className="rounded-xl bg-slate-50/90 p-2 text-xs text-slate-700 shadow-sm">
+                  <li key={result.id} className="rounded-xl bg-white/70 p-2 text-xs text-slate-700 shadow-sm transition-all duration-300 hover:bg-gray-50">
                     User: {result.userId} | Tier: {result.matchTier} | Prize: {result.prizeAmount}
                   </li>
                 ))}
@@ -311,12 +311,12 @@ function AdminPage() {
           </Card>
         </div>
 
-        <Card title="Charity Listing Management" className="mt-5 bg-white/75">
+        <Card title="Charity Listing Management" className="mt-5 bg-white/70">
           <div className="grid gap-2">
             {charities.map((charity) => (
               <div
                 key={charity.id}
-                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/90 p-3 transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-xl border border-gray-200/60 bg-white/70 p-3 transition-all duration-300 hover:bg-gray-50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
                   <p className="text-sm font-semibold text-slate-800">{charity.name}</p>
@@ -329,7 +329,7 @@ function AdminPage() {
                     max={100}
                     defaultValue={charity.contributionPercentage ?? 10}
                     onBlur={(e) => saveCharityPercent(charity.id, e.target.value)}
-                    className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    className="w-24 rounded-lg border border-gray-200 bg-white/80 px-2 py-1 text-sm shadow-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400"
                   />
                   <Button variant="danger" onClick={() => removeCharity(charity.id)}>
                     Delete
@@ -340,7 +340,7 @@ function AdminPage() {
           </div>
         </Card>
 
-        <Card title="Winner Verification Controls" className="mt-5 bg-white/75">
+        <Card title="Winner Verification Controls" className="mt-5 bg-white/70">
           <p className="mb-2 text-sm text-slate-600">
             Use winner verification ID from backend logs/admin responses to approve, reject, or mark paid.
           </p>
@@ -355,17 +355,17 @@ function AdminPage() {
               <Button onClick={() => changeWinnerState("approve")} loading={saving}>
                 Approve
               </Button>
-              <Button className="bg-amber-600 hover:bg-amber-500" onClick={() => changeWinnerState("reject")} loading={saving}>
+              <Button variant="soft" onClick={() => changeWinnerState("reject")} loading={saving}>
                 Reject
               </Button>
-              <Button className="bg-emerald-600 hover:bg-emerald-500" onClick={() => changeWinnerState("paid")} loading={saving}>
+              <Button variant="light" onClick={() => changeWinnerState("paid")} loading={saving}>
                 Mark Paid
               </Button>
             </div>
           </div>
         </Card>
 
-        <Card title="Pending Winner Verifications" className="mt-5 bg-white/75">
+        <Card title="Pending Winner Verifications" className="mt-5 bg-white/70">
           {!verifications.length ? (
             <p className="text-sm text-slate-500">No pending verification requests.</p>
           ) : (
@@ -373,7 +373,7 @@ function AdminPage() {
               {verifications.map((item) => (
                 <div
                   key={item.id}
-                  className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/90 p-3 transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 rounded-xl border border-gray-200/60 bg-white/70 p-3 transition-all duration-300 hover:bg-gray-50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="text-xs text-slate-700">
                     <p className="font-semibold">{item.user?.fullName || item.userId}</p>
@@ -408,12 +408,12 @@ function AdminPage() {
           )}
         </Card>
 
-        <Card title="Subscription Management" className="mt-5 bg-white/75">
+        <Card title="Subscription Management" className="mt-5 bg-white/70">
           <div className="space-y-2">
             {subscriptions.slice(0, 12).map((sub) => (
               <div
                 key={sub.id}
-                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/90 p-3 transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-xl border border-gray-200/60 bg-white/70 p-3 transition-all duration-300 hover:bg-gray-50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="text-xs text-slate-700">
                   <p className="font-semibold">{sub.user?.fullName || sub.userId}</p>
@@ -436,31 +436,31 @@ function AdminPage() {
           </div>
         </Card>
 
-        <Card title="Users" className="mt-5 bg-white/75">
+        <Card title="Users" className="mt-5 bg-white/70">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="py-2 pr-3">Name</th>
-                  <th className="py-2 pr-3">Email</th>
-                  <th className="py-2 pr-3">Role</th>
-                  <th className="py-2">Status</th>
-                  <th className="py-2">Actions</th>
+                  <th className="py-3 pr-4">Name</th>
+                  <th className="py-3 pr-4">Email</th>
+                  <th className="py-3 pr-4">Role</th>
+                  <th className="py-3 pr-4">Status</th>
+                  <th className="py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user, idx) => (
                   <tr
                     key={user.id}
-                    className={`border-b border-slate-100 transition hover:bg-indigo-50/40 ${
-                      idx % 2 === 0 ? "bg-white/70" : "bg-slate-50/50"
+                    className={`border-b border-slate-100 transition-all duration-200 hover:bg-purple-50/30 ${
+                      idx % 2 === 0 ? "bg-white/70" : "bg-gray-50"
                     }`}
                   >
-                    <td className="py-2 pr-3">{user.fullName}</td>
-                    <td className="py-2 pr-3">{user.email}</td>
-                    <td className="py-2 pr-3">
+                    <td className="py-3 pr-4">{user.fullName}</td>
+                    <td className="py-3 pr-4">{user.email}</td>
+                    <td className="py-3 pr-4">
                       <select
-                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                        className="rounded-lg border border-gray-200 bg-white/80 px-2 py-1 text-xs shadow-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400"
                         value={user.role}
                         onChange={(e) => updateUserRole(user.id, e.target.value)}
                       >
@@ -468,17 +468,19 @@ function AdminPage() {
                         <option value="ADMIN">ADMIN</option>
                       </select>
                     </td>
-                    <td className="py-2">{user.isActive ? "Active" : "Inactive"}</td>
-                    <td className="py-2">
+                    <td className="py-3 pr-4">{user.isActive ? "Active" : "Inactive"}</td>
+                    <td className="py-3">
                       <div className="flex gap-2">
                         <Button
-                          className="bg-slate-700 px-2 py-1 text-xs hover:bg-slate-600"
+                          variant="soft"
+                          className="px-2 py-1 text-xs"
                           onClick={() => toggleUserStatus(user.id, user.isActive)}
                         >
                           {user.isActive ? "Deactivate" : "Activate"}
                         </Button>
                         <Button
-                          className="bg-rose-600 px-2 py-1 text-xs hover:bg-rose-500"
+                          variant="danger"
+                          className="px-2 py-1 text-xs"
                           onClick={() => removeUser(user.id)}
                         >
                           Delete
