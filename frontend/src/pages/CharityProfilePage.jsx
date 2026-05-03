@@ -35,38 +35,55 @@ function CharityProfilePage() {
   }, [id]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#F5F3F0]">
       <Navbar />
-      <main className="mx-auto w-full max-w-4xl px-4 py-6">
+      <main className="mx-auto w-full max-w-4xl px-4 py-8">
         <SectionTitle title="Charity Profile" subtitle="Details and impact focus" />
         {loading ? <Loader text="Loading profile..." /> : null}
-        {error ? <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
+        {error ? (
+          <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+            {error}
+          </p>
+        ) : null}
 
         {charity ? (
           <Card title={charity.name}>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm leading-relaxed text-[#6B6B6B]">
               {charity.description || "No description provided yet."}
             </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <p className="text-sm text-slate-600">
-                Contribution Percentage: {charity.contributionPercentage ?? 10}%
-              </p>
-              <p className="text-sm text-slate-600">
-                Upcoming Events: Charity golf day announcements coming soon.
-              </p>
+
+            <div className="mt-5 grid gap-4 rounded-lg border border-[#E5E1DC] bg-[#F5F3F0] p-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#A68A64]">
+                  Contribution Rate
+                </p>
+                <p className="mt-1 text-2xl font-bold text-[#1F1F1F]">
+                  {charity.contributionPercentage ?? 10}
+                  <span className="text-base font-medium text-[#6B6B6B]">%</span>
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#A68A64]">
+                  Upcoming Events
+                </p>
+                <p className="mt-1 text-sm text-[#6B6B6B]">
+                  Charity golf day announcements coming soon.
+                </p>
+              </div>
             </div>
-            <div className="mt-4 flex gap-2">
+
+            <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 to="/signup"
-                className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+                className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all duration-300"
               >
-                Subscribe & Support
+                Subscribe &amp; Support
               </Link>
               <Link
                 to="/charities"
-                className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+                className="rounded-lg border border-[#E5E1DC] bg-white px-4 py-2 text-sm font-semibold text-[#3A2E2A] transition-colors duration-200 hover:bg-[#F3F2EF] hover:text-[#7A2E4D]"
               >
-                Back to directory
+                ← Back to Directory
               </Link>
             </div>
           </Card>

@@ -25,6 +25,13 @@ export const dashboardService = {
     api.post("/api/winner/proof", { drawId, proofImage }).then((r) => r.data),
 };
 
+export const taskService = {
+  getTasks: () => api.get("/api/tasks").then((r) => r.data),
+  getTaskStats: () => api.get("/api/tasks/stats").then((r) => r.data),
+  createTask: (payload) => api.post("/api/tasks", payload).then((r) => r.data),
+  updateTask: (id, payload) => api.put(`/api/tasks/${id}`, payload).then((r) => r.data),
+};
+
 export const adminService = {
   listUsers: () => api.get("/api/admin/users").then((r) => r.data),
   updateUser: (id, payload) => api.patch(`/api/admin/users/${id}`, payload).then((r) => r.data),

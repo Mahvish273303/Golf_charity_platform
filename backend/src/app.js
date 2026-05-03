@@ -9,6 +9,7 @@ const adminRoutes = require("./routes/admin.routes");
 const winnerRoutes = require("./routes/winner.routes");
 const publicRoutes = require("./routes/public.routes");
 const userRoutes = require("./routes/user.routes");
+const taskRoutes = require("./routes/task.routes");
 const { protect } = require("./middleware/auth.middleware");
 
 const app = express();
@@ -60,6 +61,7 @@ app.use("/api/charity", charityRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/winner", winnerRoutes);
+app.use("/api/tasks", taskRoutes);
 app.get("/api/test", (_req, res) => {
   return res.status(200).json({ message: "API working" });
 });

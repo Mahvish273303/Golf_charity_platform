@@ -7,6 +7,7 @@ import Loader from "../components/Loader";
 import SectionTitle from "../components/SectionTitle";
 import Footer from "../components/Footer";
 import { adminService, dashboardService } from "../services/dashboardService";
+import { taskService } from "../services/dashboardService";
 
 function AdminPage() {
   const [users, setUsers] = useState([]);
@@ -18,6 +19,7 @@ function AdminPage() {
   const [verifications, setVerifications] = useState([]);
   const [charityForm, setCharityForm] = useState({ name: "", description: "", image: "" });
   const [winnerVerificationId, setWinnerVerificationId] = useState("");
+  const [taskForm, setTaskForm] = useState({ title: "", description: "", assignedTo: "", dueDate: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -213,8 +215,29 @@ function AdminPage() {
     }
   };
 
+  const createTask = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      await taskService.createTask({
+        title: taskForm.title,
+        description: taskForm.description,
+        assignedTo: taskForm.assignedTo,
+        dueDate: taskForm.dueDate || undefined,
+      });
+      setSuccess("Task created successfully");
+      setTaskForm({ title: "", description: "", assignedTo: "", dueDate: "" });
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to create task");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/30">
+    <div className="min-h-screen bg-[#F5F3F0]">
       <Navbar />
       <main className="mx-auto w-full max-w-6xl px-4 py-10">
         <SectionTitle title="Admin Dashboard" subtitle="Manage users, draws, charities, and reports." />
@@ -222,29 +245,29 @@ function AdminPage() {
         {error ? <p className="mb-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
         {success ? <p className="mb-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{success}</p> : null}
 
-        <div className="mb-6 grid gap-6 rounded-3xl bg-purple-50/20 p-4 sm:grid-cols-3">
-          <Card className="bg-gradient-to-br from-white to-blue-50/40">
-            <p className="text-xs font-semibold tracking-wide text-slate-600">Total Users</p>
-            <p className="mt-1 text-3xl font-bold text-slate-900">{reports?.totalUsers ?? 0}</p>
+        <div className="mb-6 grid gap-6 rounded-3xl bg-[#F5F3F0]/30 p-4 sm:grid-cols-3">
+          <Card>
+            <p className="text-xs font-semibold tracking-wide text-[#6B6B6B]">Total Users</p>
+            <p className="mt-1 text-3xl font-bold text-[#1F1F1F]">{reports?.totalUsers ?? 0}</p>
           </Card>
-          <Card className="bg-gradient-to-br from-white to-purple-50/40">
-            <p className="text-xs font-semibold tracking-wide text-slate-600">Total Prize Pool</p>
-            <p className="mt-1 text-3xl font-bold text-slate-900">{reports?.totalPrizePool ?? 0}</p>
+          <Card>
+            <p className="text-xs font-semibold tracking-wide text-[#6B6B6B]">Total Prize Pool</p>
+            <p className="mt-1 text-3xl font-bold text-[#1F1F1F]">{reports?.totalPrizePool ?? 0}</p>
           </Card>
-          <Card className="bg-gradient-to-br from-white to-emerald-50/40">
-            <p className="text-xs font-semibold tracking-wide text-slate-600">Total Donations</p>
-            <p className="mt-1 text-3xl font-bold text-slate-900">{reports?.totalDonations ?? 0}</p>
+          <Card>
+            <p className="text-xs font-semibold tracking-wide text-[#6B6B6B]">Total Donations</p>
+            <p className="mt-1 text-3xl font-bold text-[#1F1F1F]">{reports?.totalDonations ?? 0}</p>
           </Card>
         </div>
 
         <div className="grid gap-6 rounded-3xl bg-white/50 p-4 lg:grid-cols-2">
-          <Card title="Reports" className="bg-gradient-to-br from-white to-purple-50/40">
-            <p className="text-sm text-slate-600">Total Users: {reports?.totalUsers ?? 0}</p>
-            <p className="text-sm text-slate-600">Total Prize Pool: {reports?.totalPrizePool ?? 0}</p>
-            <p className="text-sm text-slate-600">Total Donations: {reports?.totalDonations ?? 0}</p>
+          <Card title="Reports">
+            <p className="text-sm text-[#6B6B6B]">Total Users: {reports?.totalUsers ?? 0}</p>
+            <p className="text-sm text-[#6B6B6B]">Total Prize Pool: {reports?.totalPrizePool ?? 0}</p>
+            <p className="text-sm text-[#6B6B6B]">Total Donations: {reports?.totalDonations ?? 0}</p>
           </Card>
 
-          <Card title="Draw Management" className="bg-gradient-to-br from-white to-blue-50/40">
+          <Card title="Draw Management">
             <div className="flex flex-wrap gap-2">
               <Button onClick={runGenerate} loading={saving}>
                 Generate Draw
@@ -258,11 +281,11 @@ function AdminPage() {
             </div>
           </Card>
 
-          <Card title="Draw Preview" className="bg-white/70">
+          <Card title="Draw Preview">
             {!drawPreview?.draw ? (
-              <p className="text-sm text-slate-500">No unpublished draw preview available.</p>
+              <p className="text-sm text-[#6B6B6B]">No unpublished draw preview available.</p>
             ) : (
-              <div className="space-y-2 text-sm text-slate-700">
+              <div className="space-y-2 text-sm text-[#1F1F1F]">
                 <p>
                   Draw: {drawPreview.draw.monthKey || "N/A"} | Numbers:{" "}
                   {drawPreview.draw.numbers?.join(", ")}
@@ -272,7 +295,7 @@ function AdminPage() {
             )}
           </Card>
 
-          <Card title="Charity Management" className="bg-white/70">
+          <Card title="Charity Management">
             <form className="space-y-2" onSubmit={createCharity}>
               <Input
                 label="Name"
@@ -296,13 +319,54 @@ function AdminPage() {
             </form>
           </Card>
 
-          <Card title="Latest Draw Results" className="bg-white/70">
+          <Card title="Create Task" className="bg-[#F5F3F0]">
+            <form className="space-y-2" onSubmit={createTask}>
+              <Input
+                label="Title"
+                value={taskForm.title}
+                onChange={(e) => setTaskForm((p) => ({ ...p, title: e.target.value }))}
+                required
+              />
+              <Input
+                label="Description"
+                value={taskForm.description}
+                onChange={(e) => setTaskForm((p) => ({ ...p, description: e.target.value }))}
+              />
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[#3A2E2A]">Assign To</label>
+                <select
+                  className="w-full rounded-lg border border-[#E5E1DC] bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#A68A64]"
+                  value={taskForm.assignedTo}
+                  onChange={(e) => setTaskForm((p) => ({ ...p, assignedTo: e.target.value }))}
+                  required
+                >
+                  <option value="">— Select user —</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.fullName} ({u.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Input
+                label="Due Date"
+                type="date"
+                value={taskForm.dueDate}
+                onChange={(e) => setTaskForm((p) => ({ ...p, dueDate: e.target.value }))}
+              />
+              <Button type="submit" loading={saving}>
+                Create Task
+              </Button>
+            </form>
+          </Card>
+
+          <Card title="Latest Draw Results">
             {!drawResults?.results?.length ? (
-              <p className="text-sm text-slate-500">No results yet.</p>
+              <p className="text-sm text-[#6B6B6B]">No results yet.</p>
             ) : (
               <ul className="space-y-2">
                 {drawResults.results.slice(0, 8).map((result) => (
-                  <li key={result.id} className="rounded-xl bg-white/70 p-2 text-xs text-slate-700 shadow-sm transition-all duration-300 hover:bg-gray-50">
+                  <li key={result.id} className="rounded-xl border border-[#E5E1DC] bg-[#F5F3F0] p-2 text-xs text-[#1F1F1F] shadow-sm transition-all duration-300 hover:bg-[#F5F3F0]">
                     User: {result.userId} | Tier: {result.matchTier} | Prize: {result.prizeAmount}
                   </li>
                 ))}
@@ -311,16 +375,16 @@ function AdminPage() {
           </Card>
         </div>
 
-        <Card title="Charity Listing Management" className="mt-5 bg-white/70">
+        <Card title="Charity Listing Management" className="mt-5">
           <div className="grid gap-2">
             {charities.map((charity) => (
               <div
                 key={charity.id}
-                className="flex flex-col gap-2 rounded-xl border border-gray-200/60 bg-white/70 p-3 transition-all duration-300 hover:bg-gray-50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-xl border border-[#E5E1DC] bg-[#F5F3F0] p-3 transition-all duration-300 hover:bg-[#F5F3F0] hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">{charity.name}</p>
-                  <p className="text-xs text-slate-500">{charity.description || "No description"}</p>
+                  <p className="text-sm font-semibold text-[#1F1F1F]">{charity.name}</p>
+                  <p className="text-xs text-[#6B6B6B]">{charity.description || "No description"}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -329,7 +393,7 @@ function AdminPage() {
                     max={100}
                     defaultValue={charity.contributionPercentage ?? 10}
                     onBlur={(e) => saveCharityPercent(charity.id, e.target.value)}
-                    className="w-24 rounded-lg border border-gray-200 bg-white/80 px-2 py-1 text-sm shadow-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-24 rounded-lg border border-[#E5E1DC] bg-white px-2 py-1 text-sm shadow-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#A68A64]"
                   />
                   <Button variant="danger" onClick={() => removeCharity(charity.id)}>
                     Delete
@@ -340,8 +404,8 @@ function AdminPage() {
           </div>
         </Card>
 
-        <Card title="Winner Verification Controls" className="mt-5 bg-white/70">
-          <p className="mb-2 text-sm text-slate-600">
+        <Card title="Winner Verification Controls" className="mt-5">
+          <p className="mb-2 text-sm text-[#6B6B6B]">
             Use winner verification ID from backend logs/admin responses to approve, reject, or mark paid.
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -365,17 +429,17 @@ function AdminPage() {
           </div>
         </Card>
 
-        <Card title="Pending Winner Verifications" className="mt-5 bg-white/70">
+        <Card title="Pending Winner Verifications" className="mt-5">
           {!verifications.length ? (
-            <p className="text-sm text-slate-500">No pending verification requests.</p>
+            <p className="text-sm text-[#6B6B6B]">No pending verification requests.</p>
           ) : (
             <div className="space-y-2">
               {verifications.map((item) => (
                 <div
                   key={item.id}
-                  className="flex flex-col gap-2 rounded-xl border border-gray-200/60 bg-white/70 p-3 transition-all duration-300 hover:bg-gray-50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 rounded-xl border border-[#E5E1DC] bg-[#F5F3F0] p-3 transition-all duration-300 hover:bg-[#F5F3F0] hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="text-xs text-slate-700">
+                  <div className="text-xs text-[#1F1F1F]">
                     <p className="font-semibold">{item.user?.fullName || item.userId}</p>
                     <p>Tier: {item.result?.matchTier} | Prize: {item.result?.prizeAmount}</p>
                     <p>Status: {item.status} | Payment: {item.paymentStatus}</p>
@@ -408,14 +472,14 @@ function AdminPage() {
           )}
         </Card>
 
-        <Card title="Subscription Management" className="mt-5 bg-white/70">
+        <Card title="Subscription Management" className="mt-5">
           <div className="space-y-2">
             {subscriptions.slice(0, 12).map((sub) => (
               <div
                 key={sub.id}
-                className="flex flex-col gap-2 rounded-xl border border-gray-200/60 bg-white/70 p-3 transition-all duration-300 hover:bg-gray-50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-xl border border-[#E5E1DC] bg-[#F5F3F0] p-3 transition-all duration-300 hover:bg-[#F5F3F0] hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="text-xs text-slate-700">
+                <div className="text-xs text-[#1F1F1F]">
                   <p className="font-semibold">{sub.user?.fullName || sub.userId}</p>
                   <p>
                     Plan: {sub.plan} | End: {new Date(sub.endDate).toLocaleDateString()} | Active:{" "}
@@ -431,16 +495,16 @@ function AdminPage() {
               </div>
             ))}
             {!subscriptions.length ? (
-              <p className="text-sm text-slate-500">No subscriptions found.</p>
+              <p className="text-sm text-[#6B6B6B]">No subscriptions found.</p>
             ) : null}
           </div>
         </Card>
 
-        <Card title="Users" className="mt-5 bg-white/70">
+        <Card title="Users" className="mt-5">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
+                <tr className="border-b border-[#E5E1DC] text-[#6B6B6B]">
                   <th className="py-3 pr-4">Name</th>
                   <th className="py-3 pr-4">Email</th>
                   <th className="py-3 pr-4">Role</th>
@@ -452,15 +516,15 @@ function AdminPage() {
                 {users.map((user, idx) => (
                   <tr
                     key={user.id}
-                    className={`border-b border-slate-100 transition-all duration-200 hover:bg-purple-50/30 ${
-                      idx % 2 === 0 ? "bg-white/70" : "bg-gray-50"
+                    className={`border-b border-[#E5E1DC] transition-all duration-200 hover:bg-[#F5F3F0]/50 ${
+                      idx % 2 === 0 ? "bg-white" : "bg-[#F5F3F0]"
                     }`}
                   >
-                    <td className="py-3 pr-4">{user.fullName}</td>
-                    <td className="py-3 pr-4">{user.email}</td>
+                    <td className="py-3 pr-4 text-[#1F1F1F]">{user.fullName}</td>
+                    <td className="py-3 pr-4 text-[#6B6B6B]">{user.email}</td>
                     <td className="py-3 pr-4">
                       <select
-                        className="rounded-lg border border-gray-200 bg-white/80 px-2 py-1 text-xs shadow-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400"
+                        className="rounded-lg border border-[#E5E1DC] bg-white px-2 py-1 text-xs shadow-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#A68A64]"
                         value={user.role}
                         onChange={(e) => updateUserRole(user.id, e.target.value)}
                       >
@@ -468,7 +532,7 @@ function AdminPage() {
                         <option value="ADMIN">ADMIN</option>
                       </select>
                     </td>
-                    <td className="py-3 pr-4">{user.isActive ? "Active" : "Inactive"}</td>
+                    <td className="py-3 pr-4 text-[#6B6B6B]">{user.isActive ? "Active" : "Inactive"}</td>
                     <td className="py-3">
                       <div className="flex gap-2">
                         <Button

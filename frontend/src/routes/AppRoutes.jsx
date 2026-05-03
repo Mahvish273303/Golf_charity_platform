@@ -6,6 +6,7 @@ import DashboardPage from "../pages/DashboardPage";
 import AdminPage from "../pages/AdminPage";
 import CharityDirectoryPage from "../pages/CharityDirectoryPage";
 import CharityProfilePage from "../pages/CharityProfilePage";
+import TasksPage from "../pages/TasksPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 function AppRoutes() {
@@ -29,6 +30,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute adminOnly>
             <AdminPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tasks"
+        element={
+          <ProtectedRoute>
+            <TasksPage />
           </ProtectedRoute>
         }
       />
